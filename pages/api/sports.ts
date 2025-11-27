@@ -14,8 +14,10 @@ export default async function handler(
   await runMiddleware(req, res, cors);
 
   try {
-    // Fetch all sports from Streamed API
-    const response = await axios.get(`${STREAMED_BASE_URL}/api/sports`);
+    // Fetch all sports from Streamed API with timeout
+    const response = await axios.get(`${STREAMED_BASE_URL}/api/sports`, {
+      timeout: 5000, // 5 seconds timeout
+    });
 
     if (!Array.isArray(response.data)) {
       return res
@@ -26,7 +28,7 @@ export default async function handler(
     // Return the sports array
     return res.status(200).json(response.data);
   } catch (err: any) {
-    console.error("Error fetching sports:", err.message || err);
+    console.error("Error fetching sports:", err?.message || err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

@@ -27,7 +27,9 @@ export default async function handler(
   try {
     const response = await fetch(
       `https://streamed.pk/api/stream/${source}/${id}`,
+      { method: "GET", cache: "no-store" }, // ensure fresh fetch each time
     );
+
     if (!response.ok) {
       return res
         .status(response.status)
@@ -35,9 +37,15 @@ export default async function handler(
     }
 
     const streams: Stream[] = await response.json();
+    if (!Array.isArray(streams)) {
+      return res
+        .status(502)
+        .json({ error: "Invalid response format from Streamed API" });
+    }
+
     return res.status(200).json(streams);
-  } catch (err) {
-    console.error("Error fetching streams:", err);
+  } catch (err: any) {
+    console.error("Error fetching streams:", err?.message || err);
     return res.status(500).json({ error: "Server error fetching streams" });
   }
 }

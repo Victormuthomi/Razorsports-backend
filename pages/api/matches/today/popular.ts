@@ -32,7 +32,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Match[] | { error: string }>,
 ) {
-  // --- Run reusable CORS middleware ---
+  // Run CORS middleware
   await runMiddleware(req, res, cors);
 
   try {
@@ -44,6 +44,7 @@ export default async function handler(
 
     const response = await axios.get<Match[]>(
       `${STREAMED_BASE_URL}/api/matches/all-today/popular`,
+      { timeout: 5000 }, // 5 seconds timeout for reliability
     );
 
     if (!Array.isArray(response.data)) {
@@ -78,7 +79,7 @@ export default async function handler(
   } catch (error: any) {
     console.error(
       "Error fetching today popular matches:",
-      error.message || error,
+      error?.message || error,
     );
     return res.status(500).json({ error: "Internal server error" });
   }

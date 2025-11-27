@@ -42,9 +42,10 @@ export default async function handler(
       return res.status(200).json(cachedMatches);
     }
 
-    // Fetch from Streamed API
+    // Fetch from Streamed API with timeout
     const response = await axios.get<Match[]>(
       "https://streamed.pk/api/matches/live/popular",
+      { timeout: 5000 }, // 5 seconds timeout
     );
 
     if (!Array.isArray(response.data)) {
@@ -59,7 +60,7 @@ export default async function handler(
 
     return res.status(200).json(cachedMatches);
   } catch (error: any) {
-    console.error("Error fetching live matches:", error.message || error);
+    console.error("Error fetching live matches:", error?.message || error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
