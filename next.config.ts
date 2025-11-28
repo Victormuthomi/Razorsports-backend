@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/", // root URL
-        destination: "/api/test", // forward to your API route
+        destination: "/api/health", // forward to your API route
       },
     ];
   },
