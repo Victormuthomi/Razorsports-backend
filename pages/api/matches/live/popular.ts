@@ -22,10 +22,12 @@ interface Match {
   sources: { source: string; id: string }[];
 }
 
+const STREAMED_BASE_URL = process.env.STREAMED_BASE_URL!;
+const CACHE_TTL = Number(process.env.CACHE_TTL_MS) || 60_000;
+
 // In-memory cache
 let cachedMatches: Match[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 60 * 1000; // 1 minute cache
 
 export default async function handler(
   req: NextApiRequest,
@@ -42,10 +44,10 @@ export default async function handler(
       return res.status(200).json(cachedMatches);
     }
 
-    // Fetch from Streamed API with timeout
+    // Fetch from Streamed API
     const response = await axios.get<Match[]>(
-      "https://streamed.pk/api/matches/live/popular",
-      { timeout: 5000 }, // 5 seconds timeout
+      `${STREAMED_BASE_URL}/api/matches/live/popular`,
+      { timeout: 5000 },
     );
 
     if (!Array.isArray(response.data)) {
@@ -54,11 +56,31 @@ export default async function handler(
         .json({ error: "Invalid response from Streamed API" });
     }
 
+    const matches = response.data;
+
+    // Add full badge & poster URLs to match the frontend expectations
+    matches.forEach((match) => {
+      // Badges: GET /api/images/badge/[id].webp
+      if (match.teams) {
+        if (match.teams.home?.badge) {
+          match.teams.home.badge = `${STREAMED_BASE_URL}/api/images/badge/${match.teams.home.badge}.webp`;
+        }
+        if (match.teams.away?.badge) {
+          match.teams.away.badge = `${STREAMED_BASE_URL}/api/images/badge/${match.teams.away.badge}.webp`;
+        }
+      }
+
+      // Posters: Construct full URL with .webp extension
+      if (match.poster) {
+        match.poster = `${STREAMED_BASE_URL}${match.poster}.webp`;
+      }
+    });
+
     // Update cache
-    cachedMatches = response.data;
+    cachedMatches = matches;
     cacheTimestamp = now;
 
-    return res.status(200).json(cachedMatches);
+    return res.status(200).json(matches);
   } catch (error: any) {
     console.error("Error fetching live matches:", error?.message || error);
     return res.status(500).json({ error: "Internal server error" });
