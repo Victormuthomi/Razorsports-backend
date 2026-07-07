@@ -19,7 +19,7 @@ interface Match {
     away?: Team;
   };
   sources: { source: string; id: string }[];
-  poster?: string; // Added field
+  poster?: string; // URL path provided by API
 }
 
 const STREAMED_BASE_URL = process.env.STREAMED_BASE_URL!;
@@ -54,9 +54,6 @@ export default async function handler(
         .json({ error: "Invalid response from Streamed API" });
     }
 
-    // DEBUG: Uncomment the line below to verify your API data structure in your server logs
-    // console.log("Sample Match Data:", response.data[0]);
-
     // Sort football first, then by title ascending
     const sorted = response.data.sort((a, b) => {
       if (a.category === "football" && b.category !== "football") return -1;
@@ -64,9 +61,9 @@ export default async function handler(
       return a.title.localeCompare(b.title);
     });
 
-    // Add full badge & poster URLs
+    // Add full badge & poster URLs based on API docs
     sorted.forEach((match) => {
-      // Badges
+      // Badges: GET /api/images/badge/[id].webp
       if (match.teams) {
         if (match.teams.home?.badge) {
           match.teams.home.badge = `${STREAMED_BASE_URL}/api/images/badge/${match.teams.home.badge}.webp`;
@@ -76,9 +73,10 @@ export default async function handler(
         }
       }
 
-      // Posters
+      // Posters: Usage Example used https://streamed.pk${match.poster}.webp
       if (match.poster) {
-        match.poster = `${STREAMED_BASE_URL}/api/images/poster/${match.poster}.webp`;
+        // We ensure it is a clean URL based on the documentation's example logic
+        match.poster = `${STREAMED_BASE_URL}${match.poster}.webp`;
       }
     });
 
