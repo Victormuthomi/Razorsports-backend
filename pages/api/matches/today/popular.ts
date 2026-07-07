@@ -19,6 +19,7 @@ interface Match {
     away?: Team;
   };
   sources: { source: string; id: string }[];
+  poster?: string; // Added field
 }
 
 const STREAMED_BASE_URL = process.env.STREAMED_BASE_URL!;
@@ -44,7 +45,7 @@ export default async function handler(
 
     const response = await axios.get<Match[]>(
       `${STREAMED_BASE_URL}/api/matches/all-today/popular`,
-      { timeout: 5000 }, // 5 seconds timeout for reliability
+      { timeout: 5000 },
     );
 
     if (!Array.isArray(response.data)) {
@@ -53,6 +54,9 @@ export default async function handler(
         .json({ error: "Invalid response from Streamed API" });
     }
 
+    // DEBUG: Uncomment the line below to verify your API data structure in your server logs
+    // console.log("Sample Match Data:", response.data[0]);
+
     // Sort football first, then by title ascending
     const sorted = response.data.sort((a, b) => {
       if (a.category === "football" && b.category !== "football") return -1;
@@ -60,8 +64,9 @@ export default async function handler(
       return a.title.localeCompare(b.title);
     });
 
-    // Add full badge URLs
+    // Add full badge & poster URLs
     sorted.forEach((match) => {
+      // Badges
       if (match.teams) {
         if (match.teams.home?.badge) {
           match.teams.home.badge = `${STREAMED_BASE_URL}/api/images/badge/${match.teams.home.badge}.webp`;
@@ -69,6 +74,11 @@ export default async function handler(
         if (match.teams.away?.badge) {
           match.teams.away.badge = `${STREAMED_BASE_URL}/api/images/badge/${match.teams.away.badge}.webp`;
         }
+      }
+
+      // Posters
+      if (match.poster) {
+        match.poster = `${STREAMED_BASE_URL}/api/images/poster/${match.poster}.webp`;
       }
     });
 
